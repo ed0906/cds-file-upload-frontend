@@ -22,5 +22,6 @@ import models.{MRN, UserAnswers}
 case class OptionalDataRequest[A](request: EORIRequest[A],
                                   userAnswers: Option[UserAnswers]) extends WrappedRequest[A](request)
 
+case class DataRequest[A](request: EORIRequest[A], userAnswers: UserAnswers) extends WrappedRequest[A](request)
 
-case class MrnRequest[A](request: EORIRequest[A], userAnswers: UserAnswers, mrn: MRN) extends WrappedRequest[A](request)
+case class FieldRequest[+A, +B](request: EORIRequest[A], userAnswers: UserAnswers, field: B) extends WrappedRequest[A](request)

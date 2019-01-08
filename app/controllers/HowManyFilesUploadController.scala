@@ -18,12 +18,14 @@ package controllers
 
 import config.AppConfig
 import connectors.DataCacheConnector
-import controllers.actions.{AuthAction, DataRetrievalAction, EORIAction, MrnRequiredAction}
+import controllers.actions._
 import forms.FileUploadCountProvider
 import javax.inject.{Inject, Singleton}
-import pages.HowManyFilesUploadPage
+import models.MRN
+import models.requests.FieldRequest
+import pages.{HowManyFilesUploadPage, MrnEntryPage}
 import play.api.i18n.{I18nSupport, MessagesApi}
-import play.api.mvc.{Action, AnyContent}
+import play.api.mvc.{Action, AnyContent, WrappedRequest}
 import services.CustomsDeclarationsService
 import uk.gov.hmrc.play.bootstrap.controller.FrontendController
 import views.html.how_many_files_upload
@@ -36,7 +38,8 @@ class HowManyFilesUploadController @Inject()(
                                               authenticate: AuthAction,
                                               requireEori: EORIAction,
                                               getData: DataRetrievalAction,
-                                              requireMrn: MrnRequiredAction,
+                                              requireData: DataRequiredAction,
+                                              requireField: FieldRequiredActionProvider,
                                               formProvider: FileUploadCountProvider,
                                               dataCacheConnector: DataCacheConnector,
                                               customsDeclarationsService: CustomsDeclarationsService,
@@ -45,7 +48,7 @@ class HowManyFilesUploadController @Inject()(
   val form = formProvider()
 
   def onPageLoad: Action[AnyContent] =
-    (authenticate andThen requireEori andThen getData andThen requireMrn) { implicit req =>
+    (authenticate andThen requireEori andThen getData andThen requireData) { implicit req =>
 
       val populatedForm =
         req.userAnswers
@@ -56,27 +59,28 @@ class HowManyFilesUploadController @Inject()(
     }
 
   def onSubmit: Action[AnyContent] =
-    (authenticate andThen requireEori andThen getData andThen requireMrn).async { implicit req =>
+    (authenticate andThen requireEori andThen getData andThen requireData andThen requireField(MrnEntryPage)).async {
+      implicit req =>
 
-      form.bindFromRequest().fold(
-        errorForm =>
-          Future.successful(BadRequest(how_many_files_upload(errorForm))),
+        form.bindFromRequest().fold(
+          errorForm =>
+            Future.successful(BadRequest(how_many_files_upload(errorForm))),
 
-        value => {
-          customsDeclarationsService
-            .batchFileUpload(req.request.eori, req.mrn, value)
-            .flatMap { response =>
+          value => {
+            customsDeclarationsService
+              .batchFileUpload(req.request.eori, req.field, value)
+              .flatMap { response =>
 
-              val answers =
-                req.userAnswers
-                  .set(HowManyFilesUploadPage, value)
-                  .set(HowManyFilesUploadPage.Response, response)
+                val answers =
+                  req.userAnswers
+                    .set(HowManyFilesUploadPage, value)
+                    .set(HowManyFilesUploadPage.Response, response)
 
-              dataCacheConnector.save(answers.cacheMap).map { _ =>
-                Redirect(routes.UploadYourFilesController.onPageLoad())
+                dataCacheConnector.save(answers.cacheMap).map { _ =>
+                  Redirect(routes.UploadYourFilesController.onPageLoad())
+                }
               }
-            }
-        }
-      )
-    }
+          }
+        )
+      }
 }

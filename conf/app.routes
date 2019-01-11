@@ -20,3 +20,5 @@ GET         /upload/receipt                     controllers.UploadYourFilesRecei
 
 GET         /upload/success/:ref                controllers.UploadYourFilesController.onSuccess(ref: String)
 GET         /upload/:ref                        controllers.UploadYourFilesController.onPageLoad(ref: String)
+
+GET         /batch-list-files                   controllers.BatchListFilesController.onPageLoad

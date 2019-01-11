@@ -23,6 +23,11 @@ import scala.xml.Elem
 sealed trait FileState
 final case object Waiting  extends FileState
 final case object Uploaded extends FileState
+final case object Successful extends FileState
+final case object Failed extends FileState
+final case object VirusDetected extends FileState
+final case object UnacceptableMimeType extends FileState
+
 
 object FileState {
 

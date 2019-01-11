@@ -56,7 +56,7 @@ trait ViewSpecBase extends SpecBase {
   }
 
   def assertContainsText(doc:Document, text: String) =
-    assert(doc.text().contains(Html(text).body), "\n\ntext " + text + " was not rendered on the page.\n")
+    assert(doc.text().contains(asDocument(Html(text)).text()), "\n\ntext " + text + " was not rendered on the page.\n")
 
   def assertContainsLink(doc:Document, text: String, href: String) = {
     val anchors = doc.getElementsByTag("a").asScala

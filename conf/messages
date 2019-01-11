@@ -87,5 +87,10 @@ fileUploadReceiptPage.imports.tel=03000 588 454
 fileUploadReceiptPage.exports=Exports helpline:
 fileUploadReceiptPage.exports.tel=03000 588 401
 
+batchListPage.title=Your uploaded files
+batchListPage.heading=Your uploaded files
+batchListPage.startFileUpload=Start file upload
+batchListPage.mrn=MRN {0}
+
 unauthorised.title = You can’t access this service with this account
 unauthorised.heading = You can’t access this service with this account

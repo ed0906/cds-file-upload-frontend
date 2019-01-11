@@ -84,4 +84,24 @@ trait ModelGenerators extends SignedInUserGen {
         UploadRequest(href, fields)
       }
     }
+
+  implicit val arbitraryStatus: Arbitrary[FileState] =
+    Arbitrary(Gen.oneOf(Uploaded, Failed, Waiting, Successful, VirusDetected, UnacceptableMimeType ))
+
+  val batchListFieldsGen : Gen[BatchListFields] =
+    for {
+      fileName <- arbitrary[String]
+      receipt  <- arbitrary[String]
+      status   <- arbitrary[FileState]
+    } yield {
+      BatchListFields(fileName, receipt, status.toString)
+    }
+
+  val batchListFilesGen: Gen[BatchListFiles] =
+    for {
+      mrn             <- arbitrary[MRN]
+      batchListFields <- Gen.listOf(batchListFieldsGen)
+    } yield {
+      BatchListFiles(mrn.value, batchListFields)
+    }
 }

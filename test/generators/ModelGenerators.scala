@@ -18,6 +18,7 @@ package generators
 
 import models.{FileUploadCount, MRN, _}
 import org.scalacheck.Arbitrary._
+import org.scalacheck.Gen._
 import org.scalacheck.{Arbitrary, Gen}
 import wolfendale.scalacheck.regexp.RegexpGen
 
@@ -50,6 +51,12 @@ trait ModelGenerators extends SignedInUserGen {
       FileUploadFile(seqNo, doctype).get
     }
 
+  val waitingFileGen: Gen[File] =
+    for {
+      ref     <- arbitrary[String]
+      request <- arbitrary[UploadRequest]
+    } yield File(ref, Waiting(request))
+
   implicit val arbitraryFileUploadFile: Arbitrary[FileUploadFile] =
     Arbitrary(fileUploadFileGen)
 
@@ -57,7 +64,7 @@ trait ModelGenerators extends SignedInUserGen {
     Arbitrary {
       for {
         i     <- Gen.choose(1, 10)
-        files <- Gen.listOfN(i, arbitrary[File])
+        files <- Gen.listOfN(i, waitingFileGen)
       } yield {
         FileUploadResponse(files)
       }
@@ -66,10 +73,10 @@ trait ModelGenerators extends SignedInUserGen {
   implicit val arbitraryFile: Arbitrary[File] =
     Arbitrary {
       for {
-        ref <- arbitrary[String].map(_.trim)
-        uploadRequest <- arbitrary[UploadRequest]
+        ref   <- arbitrary[String].map(_.trim)
+        state <- arbitrary[FileState]
       } yield {
-        File(ref, uploadRequest)
+        File(ref, state)
       }
     }
 
@@ -86,7 +93,13 @@ trait ModelGenerators extends SignedInUserGen {
     }
 
   implicit val arbitraryStatus: Arbitrary[FileState] =
-    Arbitrary(Gen.oneOf(Uploaded, Failed, Waiting, Successful, VirusDetected, UnacceptableMimeType ))
+    Arbitrary(oneOf(List(
+      const(Uploaded),
+      const(Failed),
+      arbitraryUploadRequest.arbitrary.map(Waiting(_)),
+      const(Successful),
+      const(VirusDetected),
+      const(UnacceptableMimeType))))
 
   val batchListFieldsGen : Gen[BatchListFields] =
     for {

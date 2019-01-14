@@ -75,13 +75,13 @@ class BatchListSpec extends ViewSpecBase with ViewBehaviours with PropertyChecks
       }
     }
 
-    "display all status" in {
-      forAll(batchListFilesGen) { batchListFile =>
-
-        val doc = asDocument(view(List(batchListFile)))
-
-        batchListFile.batchListFields.foreach(field => assertContainsText(doc, field.status))
-      }
-    }
+//    "display all status" in {
+//      forAll(batchListFilesGen) { batchListFile =>
+//
+//        val doc = asDocument(view(List(batchListFile)))
+//
+//        batchListFile.batchListFields.foreach(field => assertContainsText(doc, field.status))
+//      }
+//    }
   }
 }

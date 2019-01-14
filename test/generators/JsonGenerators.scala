@@ -49,6 +49,6 @@ trait JsonGenerators {
           arbitraryJsonNumber.arbitrary,
           arbitraryJsonBoolean.arbitrary)
 
-      Gen.listOf(valuesGen).map(JsArray)
+      Gen.listOf(valuesGen).map(JsArray(_))
     }
 }

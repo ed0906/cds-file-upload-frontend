@@ -17,34 +17,9 @@
 package models
 
 import play.api.libs.json._
+import play.json.extra.Variants
 
 import scala.xml.Elem
-
-sealed trait FileState
-final case object Waiting  extends FileState
-final case object Uploaded extends FileState
-final case object Successful extends FileState
-final case object Failed extends FileState
-final case object VirusDetected extends FileState
-final case object UnacceptableMimeType extends FileState
-
-
-object FileState {
-
-  private val waiting  = "Waiting"
-  private val uploaded = "Uploaded"
-
-  implicit val reads = Reads[FileState] {
-    case JsString(`waiting`)  => JsSuccess(Waiting)
-    case JsString(`uploaded`) => JsSuccess(Uploaded)
-    case _                    => JsError("Unable to read FileState")
-  }
-
-  implicit val writes = Writes[FileState] {
-    case Waiting  => JsString(waiting)
-    case Uploaded => JsString(uploaded)
-  }
-}
 
 case class UploadRequest(href: String, fields: Map[String, String])
 
@@ -53,21 +28,36 @@ object UploadRequest {
   implicit val format = Json.format[UploadRequest]
 }
 
-case class File(reference: String, uploadRequest: UploadRequest, state: FileState = Waiting)
+sealed trait FileState
+final case class Waiting(uploadRequest: UploadRequest) extends FileState
+final case object Uploaded extends FileState
+final case object Successful extends FileState
+final case object Failed extends FileState
+final case object VirusDetected extends FileState
+final case object UnacceptableMimeType extends FileState
+
+object Waiting {
+
+  implicit val format = Json.format[Waiting]
+}
+
+object FileState {
+
+  implicit val format = Variants.format[FileState]
+}
+
+sealed case class File(reference: String, state: FileState)
 
 object File {
 
   implicit val format = Json.format[File]
 }
 
-sealed abstract case class FileUploadResponse(files: List[File])
+sealed case class FileUploadResponse(files: List[File])
 
 object FileUploadResponse {
 
-  def apply(files: List[File]): FileUploadResponse =
-    new FileUploadResponse(files.sortBy(_.reference)) {}
-
-  implicit val format = Json.format[FileUploadResponse]
+  implicit val format = Variants.format[FileUploadResponse]
 
   def fromXml(xml: Elem): FileUploadResponse = {
     val files: List[File] = (xml \ "Files" \ "_").theSeq.collect {
@@ -78,7 +68,7 @@ object FileUploadResponse {
           case field =>
             field.label -> field.text.trim
         }.toMap
-        File(reference, UploadRequest(href, fields))
+        File(reference, Waiting(UploadRequest(href, fields)))
     }.toList
 
     FileUploadResponse(files)

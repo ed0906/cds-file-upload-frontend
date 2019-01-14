@@ -16,13 +16,14 @@
 
 package controllers
 
-import controllers.actions.{DataRetrievalAction, FakeActions, BatchFileUploadRequiredActionImpl}
+import controllers.actions.{BatchFileUploadRequiredActionImpl, DataRetrievalAction, FakeActions}
 import generators.Generators
 import models._
 import org.mockito.ArgumentCaptor
 import org.mockito.Mockito._
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
+import org.scalatest.OptionValues
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.prop.PropertyChecks
@@ -38,14 +39,17 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
   with MockitoSugar
   with PropertyChecks
   with Generators
-  with FakeActions {
+  with FakeActions
+  with OptionValues {
 
   val batchGen: Gen[(File, BatchFileUpload)] =
     for {
-      batch <- arbitrary[BatchFileUpload]
-      index    <- Gen.choose(0, batch.files.length - 1)
-      file      = batch.files(index)
-    } yield (file, batch)
+      mrn   <- arbitrary[MRN]
+      count <- Gen.choose(1, 10)
+      files <- Gen.listOfN(count, waitingFileGen)
+      index <- Gen.choose(0, files.length - 1)
+      file      = files(index)
+    } yield (file, BatchFileUpload(mrn, files))
 
   def controller(getData: DataRetrievalAction) =
     new UploadYourFilesController(
@@ -67,6 +71,12 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
     val index = refs.sorted.indexOf(ref)
     refs.sorted.drop(index + 1).headOption.getOrElse("receipt")
   }
+
+  private def uploadRequest(file: File): Option[UploadRequest] =
+    file.state match {
+      case Waiting(request) => Some(request)
+      case _                => None
+    }
 
   ".onPageLoad" should {
 
@@ -95,7 +105,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
             val result = controller(getCacheMap(updatedCache)).onPageLoad(file.reference)(fakeRequest)
 
             status(result) mustBe OK
-            contentAsString(result) mustBe viewAsString(file.uploadRequest, callback, refPosition)
+            contentAsString(result) mustBe viewAsString(uploadRequest(file).value, callback, refPosition)
         }
       }
     }
@@ -109,7 +119,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
             val uploadedFile = file.copy(state = Uploaded)
             val updatedFiles = uploadedFile :: batch.files.filterNot(_ == file)
 
-            (uploadedFile, batch.copy(files = updatedFiles))
+            (uploadedFile, BatchFileUpload(batch.mrn, updatedFiles))
         }
 
         forAll(fileUploadedGen, arbitrary[CacheMap]) {

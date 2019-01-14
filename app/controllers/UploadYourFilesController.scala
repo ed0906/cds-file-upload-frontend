@@ -50,8 +50,8 @@ class UploadYourFilesController @Inject()(
       req.batchFileUpload.files.find(_.reference == ref) match {
         case Some(file) =>
           file.state match {
-            case Waiting => Ok(upload_your_files(file.uploadRequest, callback, refPosition))
-            case _       => Redirect(nextPage(file.reference, req.batchFileUpload.files))
+            case Waiting(uploadRequest) => Ok(upload_your_files(uploadRequest, callback, refPosition))
+            case _                      => Redirect(nextPage(file.reference, req.batchFileUpload.files))
           }
 
         case None => Redirect(routes.SessionExpiredController.onPageLoad())
@@ -66,7 +66,7 @@ class UploadYourFilesController @Inject()(
       files.find(_.reference == ref) match {
         case Some(file) =>
           val updatedFiles = file.copy(state = Uploaded) :: files.filterNot(_.reference == ref)
-          val updatedBatch = req.batchFileUpload.copy(files = updatedFiles)
+          val updatedBatch = BatchFileUpload(req.batchFileUpload.mrn, updatedFiles)
           val answers = req.userAnswers.set(HowManyFilesUploadPage.Response, updatedBatch)
 
           dataCacheConnector.save(answers.cacheMap).map { _ =>
@@ -80,7 +80,10 @@ class UploadYourFilesController @Inject()(
   def nextPage(ref: String, refs: List[File])(implicit request: Request[_]): Call =
     refs
       .partition(_.reference <= ref)._2
-      .find(_.state == Waiting)
+      .find(_.state match {
+        case Waiting(_) => true
+        case _          => false
+      })
       .map(file => routes.UploadYourFilesController.onPageLoad(file.reference))
       .getOrElse(routes.UploadYourFilesReceiptController.onPageLoad())
 

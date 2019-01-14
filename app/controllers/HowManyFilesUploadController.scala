@@ -68,14 +68,15 @@ class HowManyFilesUploadController @Inject()(
             .batchFileUpload(req.request.eori, req.mrn, value)
             .flatMap { response =>
 
+              val batchFileUpload = BatchFileUpload(req.mrn, response.files)
               val answers =
                 req.userAnswers
                   .set(HowManyFilesUploadPage, value)
-                  .set(HowManyFilesUploadPage.Response, BatchFileUpload(req.mrn, response.files))
+                  .set(HowManyFilesUploadPage.Response, batchFileUpload)
 
               dataCacheConnector.save(answers.cacheMap).map { _ =>
 
-                response.files.map(_.reference).headOption match {
+                batchFileUpload.files.map(_.reference).headOption match {
                   case Some(nextRef) => Redirect(routes.UploadYourFilesController.onPageLoad(nextRef))
                   case None          => Redirect(routes.SessionExpiredController.onPageLoad())
                 }

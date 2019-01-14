@@ -19,7 +19,7 @@ package controllers.test
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
-import models.{File, FileUploadResponse, UploadRequest}
+import models.{File, FileUploadResponse, UploadRequest, Waiting}
 import play.api.data.Form
 import play.api.data.Forms._
 import play.api.http.ContentTypes
@@ -40,7 +40,7 @@ class CustomsDeclarationsStubController @Inject()() extends FrontendController {
   def handleBatchFileUploadRequest: Action[NodeSeq] = Action(parse.xml) { implicit req =>
     val fileGroupSize = (scala.xml.XML.loadString(req.body.mkString) \ "FileGroupSize").text.toInt
     val resp = FileUploadResponse((1 to fileGroupSize).map { i =>
-      File(reference = UUID.randomUUID().toString, UploadRequest(
+      File(reference = UUID.randomUUID().toString, Waiting(UploadRequest(
         href = "/cds-file-upload-service/test-only/s3-bucket",
         fields = Map(
           "X-Amz-Algorithm" -> "AWS4-HMAC-SHA256",
@@ -51,7 +51,7 @@ class CustomsDeclarationsStubController @Inject()() extends FrontendController {
           "X-Amz-Credential" -> "ASIAxxxxxxxxx/20180202/eu-west-2/s3/aws4_request",
           "policy" -> "xxxxxxxx=="
         )
-      ))
+      )))
     }.toList)
     Ok(XmlHelper.toXml(resp)).as(ContentTypes.XML)
   }
@@ -82,8 +82,13 @@ object XmlHelper {
   def toXml(file: File): Elem =
     <File>
       <reference>{file.reference}</reference>
-      {toXml(file.uploadRequest)}
-    </File>
+      {
+        file.state match {
+          case Waiting(request) => toXml(request)
+          case _ => ""
+        }
+      }
+      </File>
 
   def toXml(response: FileUploadResponse): Elem = {
     <FileUploadResponse xmlns="hmrc:fileupload">

@@ -25,6 +25,8 @@ lazy val microservice = Project(appName, file("."))
       "com.fasterxml.jackson.module"     %% "jackson-module-scala"     % jacksonVersion,
       "uk.gov.hmrc"                      %% "play-reactivemongo"       % "6.2.0",
       "uk.gov.hmrc"                      %% "http-caching-client"      % "7.2.0",
+      "io.megl"                          %% "play-json-extra"          % "2.4.3",
+      //"org.julienrf"                     %% "play-json-derived-codecs" % "4.0.1",
 
       "org.scalatest"              %% "scalatest"                 % "3.0.4"  % "test",
       "org.jsoup"                  %  "jsoup"                     % "1.10.2" % "test",

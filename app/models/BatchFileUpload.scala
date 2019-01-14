@@ -16,15 +16,28 @@
 
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json, OFormat, Reads}
+import play.json.extra.Variants
+import play.api.libs.json._
+import play.api.libs.json.Reads._
+import play.api.libs.functional.syntax._
 
-final case class BatchFileUpload(mrn: MRN, files: List[File])
+sealed abstract case class BatchFileUpload(mrn: MRN, files: List[File])
 
 object BatchFileUpload {
 
-  def apply(files: List[File]): List[File] = files.sortBy(_.reference)
+  def apply(mrn: MRN, files: List[File]): BatchFileUpload =
+    new BatchFileUpload(mrn, files.sortBy(_.reference)) {}
 
 
-  implicit val format = Json.format[BatchFileUpload]
+  implicit val reads: Reads[BatchFileUpload] =
+    ((__ \ "mrn").read[MRN] and
+      (__ \ "files").read[List[File]]
+    )(BatchFileUpload.apply _)
+
+  implicit val writes: Writes[BatchFileUpload] = Writes {
+    case BatchFileUpload(mrn, files) =>
+      JsObject(Map(("mrn" -> Json.toJson(mrn)), ("files" -> Json.toJson(files))))
+  }
 
 }

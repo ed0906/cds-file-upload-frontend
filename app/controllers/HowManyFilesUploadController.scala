@@ -71,7 +71,7 @@ class HowManyFilesUploadController @Inject()(
               val answers =
                 req.userAnswers
                   .set(HowManyFilesUploadPage, value)
-                  .set(HowManyFilesUploadPage.Response, BatchFileUpload(req.mrn, response))
+                  .set(HowManyFilesUploadPage.Response, BatchFileUpload(req.mrn, response.files))
 
               dataCacheConnector.save(answers.cacheMap).map { _ =>
 

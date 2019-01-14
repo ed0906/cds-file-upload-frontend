@@ -43,8 +43,8 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
   val batchGen: Gen[(File, BatchFileUpload)] =
     for {
       batch <- arbitrary[BatchFileUpload]
-      index    <- Gen.choose(0, batch.response.files.length - 1)
-      file      = batch.response.files(index)
+      index    <- Gen.choose(0, batch.files.length - 1)
+      file      = batch.files(index)
     } yield (file, batch)
 
   def controller(getData: DataRetrievalAction) =
@@ -89,7 +89,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
               routes.UploadYourFilesController.onSuccess(file.reference).absoluteURL()(fakeRequest)
 
             val refPosition: Position =
-              nextPosition(file.reference, batch.response.files.map(_.reference))
+              nextPosition(file.reference, batch.files.map(_.reference))
 
             val updatedCache = combine(batch, cacheMap)
             val result = controller(getCacheMap(updatedCache)).onPageLoad(file.reference)(fakeRequest)
@@ -107,15 +107,15 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
         val fileUploadedGen = batchGen.map {
           case (file, batch) =>
             val uploadedFile = file.copy(state = Uploaded)
-            val updatedFiles = uploadedFile :: batch.response.files.filterNot(_ == file)
+            val updatedFiles = uploadedFile :: batch.files.filterNot(_ == file)
 
-            (uploadedFile, batch.copy(response = FileUploadResponse(updatedFiles)))
+            (uploadedFile, batch.copy(files = updatedFiles))
         }
 
         forAll(fileUploadedGen, arbitrary[CacheMap]) {
           case ((file, batch), cache) =>
 
-            val reference    = nextRef(file.reference, batch.response.files.map(_.reference))
+            val reference    = nextRef(file.reference, batch.files.map(_.reference))
             val nextPage     = routes.UploadYourFilesController.onPageLoad(reference)
             val updatedCache = combine(batch, cache)
 
@@ -144,7 +144,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
         forAll { (ref: String, batch: BatchFileUpload, cache: CacheMap) =>
 
-          whenever(!batch.response.files.exists(_.reference == ref)) {
+          whenever(!batch.files.exists(_.reference == ref)) {
 
             val updatedCache = combine(batch, cache)
             val result = controller(getCacheMap(updatedCache)).onPageLoad(ref)(fakeRequest)
@@ -176,7 +176,6 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
             updatedBatch must not be Some(batch)
             updatedBatch
-              .map(_.response)
               .flatMap(_.files.find(_.reference == file.reference))
               .map(_.state) mustBe Some(Uploaded)
           }
@@ -190,7 +189,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
           val updatedCache = combine(batch, cache)
           val result = controller(getCacheMap(updatedCache)).onSuccess(file.reference)(fakeRequest)
-          val next = nextRef(file.reference, batch.response.files.map(_.reference))
+          val next = nextRef(file.reference, batch.files.map(_.reference))
 
           status(result) mustBe SEE_OTHER
           redirectLocation(result) mustBe Some(routes.UploadYourFilesController.onPageLoad(next).url)
@@ -214,7 +213,7 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
         forAll { (ref: String, batch: BatchFileUpload, cache: CacheMap) =>
 
-          whenever(!batch.response.files.exists(_.reference == ref)) {
+          whenever(!batch.files.exists(_.reference == ref)) {
 
             val updatedCache = combine(batch, cache)
             val result = controller(getCacheMap(updatedCache)).onSuccess(ref)(fakeRequest)

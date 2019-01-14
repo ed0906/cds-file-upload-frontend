@@ -43,15 +43,15 @@ class UploadYourFilesController @Inject()(
   def onPageLoad(ref: String): Action[AnyContent] =
     (authenticate andThen requireEori andThen getData andThen requireResponse) { implicit req =>
 
-      val references  = req.fileUploadResponse.files.map(_.reference)
+      val references  = req.batchFileUpload.files.map(_.reference)
       val callback    = routes.UploadYourFilesController.onSuccess(ref).absoluteURL()
       val refPosition = getPosition(ref, references)
 
-      req.fileUploadResponse.files.find(_.reference == ref) match {
+      req.batchFileUpload.files.find(_.reference == ref) match {
         case Some(file) =>
           file.state match {
             case Waiting => Ok(upload_your_files(file.uploadRequest, callback, refPosition))
-            case _       => Redirect(nextPage(file.reference, req.fileUploadResponse.files))
+            case _       => Redirect(nextPage(file.reference, req.batchFileUpload.files))
           }
 
         case None => Redirect(routes.SessionExpiredController.onPageLoad())
@@ -61,12 +61,12 @@ class UploadYourFilesController @Inject()(
   def onSuccess(ref: String): Action[AnyContent] =
     (authenticate andThen requireEori andThen getData andThen requireResponse).async { implicit req =>
 
-      val files  = req.fileUploadResponse.files
+      val files  = req.batchFileUpload.files
 
       files.find(_.reference == ref) match {
         case Some(file) =>
           val updatedFiles = file.copy(state = Uploaded) :: files.filterNot(_.reference == ref)
-          val updatedBatch = req.batchFileUpload.copy(response = FileUploadResponse(updatedFiles))
+          val updatedBatch = req.batchFileUpload.copy(files = updatedFiles)
           val answers = req.userAnswers.set(HowManyFilesUploadPage.Response, updatedBatch)
 
           dataCacheConnector.save(answers.cacheMap).map { _ =>

@@ -202,7 +202,7 @@ class HowManyFilesUploadControllerSpec extends ControllerSpecBase
 
         val captor: ArgumentCaptor[CacheMap] = ArgumentCaptor.forClass(classOf[CacheMap])
         verify(dataCacheConnector, atLeastOnce).save(captor.capture())
-        captor.getValue.getEntry[BatchFileUpload](HowManyFilesUploadPage.Response) mustBe Some(BatchFileUpload(mrn, response))
+        captor.getValue.getEntry[BatchFileUpload](HowManyFilesUploadPage.Response) mustBe Some(BatchFileUpload(mrn, response.files))
       }
     }
   }

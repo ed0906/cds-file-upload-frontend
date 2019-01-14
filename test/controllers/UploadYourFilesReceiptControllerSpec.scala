@@ -54,7 +54,7 @@ class UploadYourFilesReceiptControllerSpec extends ControllerSpecBase with Prope
           val result = controller(getCacheMap(updatedCache)).onPageLoad()(fakeRequest)
 
           status(result) mustBe OK
-          contentAsString(result) mustBe viewAsString(batch.response.files.map(_.reference).sorted)
+          contentAsString(result) mustBe viewAsString(batch.files.map(_.reference).sorted)
         }
       }
     }

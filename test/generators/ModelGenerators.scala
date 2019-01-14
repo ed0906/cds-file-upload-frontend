@@ -111,7 +111,7 @@ trait ModelGenerators extends SignedInUserGen {
         mrn      <- arbitrary[MRN]
         response <- arbitrary[FileUploadResponse]
       } yield {
-        BatchFileUpload(mrn, response)
+        BatchFileUpload(mrn, response.files)
       }
     }
 }

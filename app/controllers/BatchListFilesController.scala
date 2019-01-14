@@ -41,7 +41,7 @@ class BatchListFilesController @Inject()(
   { implicit req =>
 
     val x =
-      req.fileUploadResponse.files.map(file => BatchListFields("", file.reference, file.state.toString))
+      req.batchFileUpload.files.map(file => BatchListFields("", file.reference, file.state.toString))
 
     val blf1 = BatchListFiles("12313123123132",
       List(BatchListFields("invoice.png", "receiptXXXXXX", "Failed-reason unknown"),

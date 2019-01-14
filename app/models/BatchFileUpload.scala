@@ -18,9 +18,12 @@ package models
 
 import play.api.libs.json.Json
 
-final case class BatchFileUpload(mrn: MRN, response: FileUploadResponse)
+final case class BatchFileUpload(mrn: MRN, files: List[File])
 
 object BatchFileUpload {
+
+  def apply(files: List[File]): List[File] = files.sortBy(_.reference)
+
 
   implicit val format = Json.format[BatchFileUpload]
 

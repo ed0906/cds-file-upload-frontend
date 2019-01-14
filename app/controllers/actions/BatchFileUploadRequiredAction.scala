@@ -18,7 +18,7 @@ package controllers.actions
 
 import com.google.inject.Inject
 import controllers.routes
-import models.requests.{FileUploadResponseRequest, OptionalDataRequest}
+import models.requests.{BatchFileUploadRequest, OptionalDataRequest}
 import pages.HowManyFilesUploadPage
 import play.api.mvc.{ActionRefiner, Result}
 import play.api.mvc.Results.Redirect
@@ -27,17 +27,17 @@ import uk.gov.hmrc.play.HeaderCarrierConverter
 import scala.concurrent.Future
 
 
-class FileUploadResponseRequiredActionImpl @Inject() extends FileUploadResponseRequiredAction {
+class BatchFileUploadRequiredActionImpl @Inject() extends BatchFileUploadRequiredAction {
 
-  override protected def refine[A](request: OptionalDataRequest[A]): Future[Either[Result, FileUploadResponseRequest[A]]] = {
+  override protected def refine[A](request: OptionalDataRequest[A]): Future[Either[Result, BatchFileUploadRequest[A]]] = {
     implicit val hc = HeaderCarrierConverter.fromHeadersAndSession(request.headers, Some(request.session))
 
     Future.successful(
       request.userAnswers
         .flatMap(data => data.get(HowManyFilesUploadPage.Response).map(response => (data, response)))
-        .map { case (data, response) => FileUploadResponseRequest(request.request, data, response) }
+        .map { case (data, response) => BatchFileUploadRequest(request.request, data, response) }
         .toRight(Redirect(routes.SessionExpiredController.onPageLoad())))
   }
 }
 
-trait FileUploadResponseRequiredAction extends ActionRefiner[OptionalDataRequest, FileUploadResponseRequest]
+trait BatchFileUploadRequiredAction extends ActionRefiner[OptionalDataRequest, BatchFileUploadRequest]

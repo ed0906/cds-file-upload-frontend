@@ -104,4 +104,14 @@ trait ModelGenerators extends SignedInUserGen {
     } yield {
       BatchListFiles(mrn.value, batchListFields)
     }
+
+  implicit val arbitraryBatchFile: Arbitrary[BatchFileUpload]=
+    Arbitrary {
+      for {
+        mrn      <- arbitrary[MRN]
+        response <- arbitrary[FileUploadResponse]
+      } yield {
+        BatchFileUpload(mrn, response)
+      }
+    }
 }

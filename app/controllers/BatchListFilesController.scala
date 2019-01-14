@@ -18,7 +18,7 @@ package controllers
 
 import config.AppConfig
 import connectors.DataCacheConnector
-import controllers.actions.{AuthAction, DataRetrievalAction, EORIAction, FileUploadResponseRequiredAction}
+import controllers.actions.{AuthAction, DataRetrievalAction, EORIAction, BatchFileUploadRequiredAction}
 import forms.MRNFormProvider
 import javax.inject.Inject
 import models.{BatchListFields, BatchListFiles}
@@ -32,7 +32,7 @@ class BatchListFilesController @Inject()(
                                           authenticate: AuthAction,
                                           requireEori: EORIAction,
                                           getData: DataRetrievalAction,
-                                          requireResponse: FileUploadResponseRequiredAction,
+                                          requireResponse: BatchFileUploadRequiredAction,
                                           dataCacheConnector: DataCacheConnector,
                                           implicit val appConfig: AppConfig) extends FrontendController with I18nSupport {
 

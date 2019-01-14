@@ -21,7 +21,7 @@ import config.AppConfig
 import connectors.DataCacheConnector
 import controllers.actions._
 import javax.inject.Inject
-import models.{File, FileUploadResponse, Uploaded, Waiting}
+import models._
 import pages.HowManyFilesUploadPage
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent, Call, Request}
@@ -36,7 +36,7 @@ class UploadYourFilesController @Inject()(
                                            authenticate: AuthAction,
                                            requireEori: EORIAction,
                                            getData: DataRetrievalAction,
-                                           requireResponse: FileUploadResponseRequiredAction,
+                                           requireResponse: BatchFileUploadRequiredAction,
                                            dataCacheConnector: DataCacheConnector,
                                            implicit val appConfig: AppConfig) extends FrontendController with I18nSupport {
 
@@ -66,7 +66,8 @@ class UploadYourFilesController @Inject()(
       files.find(_.reference == ref) match {
         case Some(file) =>
           val updatedFiles = file.copy(state = Uploaded) :: files.filterNot(_.reference == ref)
-          val answers = req.userAnswers.set(HowManyFilesUploadPage.Response, FileUploadResponse(updatedFiles))
+          val updatedBatch = req.batchFileUpload.copy(response = FileUploadResponse(updatedFiles))
+          val answers = req.userAnswers.set(HowManyFilesUploadPage.Response, updatedBatch)
 
           dataCacheConnector.save(answers.cacheMap).map { _ =>
             Redirect(nextPage(ref, files))

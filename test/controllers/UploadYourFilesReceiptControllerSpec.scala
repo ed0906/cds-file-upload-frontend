@@ -16,9 +16,9 @@
 
 package controllers
 
-import controllers.actions.{DataRetrievalAction, FakeActions, FileUploadResponseRequiredActionImpl}
+import controllers.actions.{BatchFileUploadRequiredActionImpl, DataRetrievalAction, FakeActions}
 import generators.Generators
-import models.{File, FileUploadResponse, UploadRequest}
+import models.{BatchFileUpload, File, FileUploadResponse, UploadRequest}
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Gen
 import org.scalatest.prop.PropertyChecks
@@ -36,7 +36,7 @@ class UploadYourFilesReceiptControllerSpec extends ControllerSpecBase with Prope
       new FakeAuthAction(),
       new FakeEORIAction(),
       getData,
-      new FileUploadResponseRequiredActionImpl(),
+      new BatchFileUploadRequiredActionImpl(),
       appConfig)
 
   def viewAsString(receipts: List[String]): String =
@@ -48,13 +48,13 @@ class UploadYourFilesReceiptControllerSpec extends ControllerSpecBase with Prope
 
       "request file exists in response" in {
 
-        forAll { (response: FileUploadResponse, cache: CacheMap) =>
+        forAll { (batch: BatchFileUpload, cache: CacheMap) =>
 
-          val updatedCache = cache.copy(data = cache.data + (HowManyFilesUploadPage.Response.toString -> Json.toJson(response)))
+          val updatedCache = cache.copy(data = cache.data + (HowManyFilesUploadPage.Response.toString -> Json.toJson(batch)))
           val result = controller(getCacheMap(updatedCache)).onPageLoad()(fakeRequest)
 
           status(result) mustBe OK
-          contentAsString(result) mustBe viewAsString(response.files.map(_.reference).sorted)
+          contentAsString(result) mustBe viewAsString(batch.response.files.map(_.reference).sorted)
         }
       }
     }

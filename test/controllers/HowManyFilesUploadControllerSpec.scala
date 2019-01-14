@@ -19,14 +19,14 @@ package controllers
 import controllers.actions._
 import forms.FileUploadCountProvider
 import generators.Generators
-import models.{FileUploadCount, FileUploadResponse, MRN}
+import models.{BatchFileUpload, FileUploadCount, FileUploadResponse, MRN}
 import models.requests.SignedInUser
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Arbitrary._
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterEach, OptionValues}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.prop.PropertyChecks
 import pages.{HowManyFilesUploadPage, MrnEntryPage}
@@ -45,15 +45,11 @@ class HowManyFilesUploadControllerSpec extends ControllerSpecBase
   with PropertyChecks
   with Generators
   with FakeActions
-  with BeforeAndAfterEach {
-
-  type UserInfo = (SignedInUser, String)
+  with BeforeAndAfterEach
+  with OptionValues {
 
   def zip[A, B](ga: Gen[A], gb: Gen[B]): Gen[(A, B)] =
     ga.flatMap(a => gb.map(b => (a, b)))
-
-  implicit val arbitraryUserInfo: Arbitrary[UserInfo] =
-    Arbitrary(zip(userGen, arbitrary[String]))
 
   implicit val arbitraryMrnCacheMap: Arbitrary[CacheMap] =
     Arbitrary {
@@ -202,9 +198,11 @@ class HowManyFilesUploadControllerSpec extends ControllerSpecBase
         val postRequest = fakeRequest.withFormUrlEncodedBody("value" -> fileUploadCount.value.toString)
         await(controller(getCacheMap(cacheMap)).onSubmit(postRequest))
 
+        val mrn = cacheMap.getEntry[MRN](MrnEntryPage).value
+
         val captor: ArgumentCaptor[CacheMap] = ArgumentCaptor.forClass(classOf[CacheMap])
         verify(dataCacheConnector, atLeastOnce).save(captor.capture())
-        captor.getValue.getEntry[FileUploadResponse](HowManyFilesUploadPage.Response) mustBe Some(response)
+        captor.getValue.getEntry[BatchFileUpload](HowManyFilesUploadPage.Response) mustBe Some(BatchFileUpload(mrn, response))
       }
     }
   }

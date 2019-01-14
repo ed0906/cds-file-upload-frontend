@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package pages
+package models
 
-import models.{BatchFileUpload, FileUploadCount}
+import play.api.libs.json.Json
 
-case object HowManyFilesUploadPage extends QuestionPage[FileUploadCount] {
+final case class BatchFileUpload(mrn: MRN, response: FileUploadResponse)
 
-  override val toString: String = "howManyFilesUpload"
+object BatchFileUpload {
 
-  case object Response extends QuestionPage[BatchFileUpload] {
+  implicit val format = Json.format[BatchFileUpload]
 
-    override val toString: String = "fileUploadResponse"
-  }
 }

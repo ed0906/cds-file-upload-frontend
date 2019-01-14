@@ -21,6 +21,7 @@ import connectors.DataCacheConnector
 import controllers.actions.{AuthAction, DataRetrievalAction, EORIAction, MrnRequiredAction}
 import forms.FileUploadCountProvider
 import javax.inject.{Inject, Singleton}
+import models.BatchFileUpload
 import pages.HowManyFilesUploadPage
 import play.api.i18n.{I18nSupport, MessagesApi}
 import play.api.mvc.{Action, AnyContent}
@@ -70,7 +71,7 @@ class HowManyFilesUploadController @Inject()(
               val answers =
                 req.userAnswers
                   .set(HowManyFilesUploadPage, value)
-                  .set(HowManyFilesUploadPage.Response, response)
+                  .set(HowManyFilesUploadPage.Response, BatchFileUpload(req.mrn, response))
 
               dataCacheConnector.save(answers.cacheMap).map { _ =>
 

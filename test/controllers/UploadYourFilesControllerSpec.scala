@@ -16,7 +16,7 @@
 
 package controllers
 
-import controllers.actions.{DataRetrievalAction, FakeActions, FileUploadResponseRequiredActionImpl}
+import controllers.actions.{DataRetrievalAction, FakeActions, BatchFileUploadRequiredActionImpl}
 import generators.Generators
 import models._
 import org.mockito.ArgumentCaptor
@@ -40,12 +40,12 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
   with Generators
   with FakeActions {
 
-  val responseGen: Gen[(File, FileUploadResponse)] =
+  val batchGen: Gen[(File, BatchFileUpload)] =
     for {
-      response <- arbitrary[FileUploadResponse]
-      index    <- Gen.choose(0, response.files.length - 1)
-      file      = response.files(index)
-    } yield (file, response)
+      batch <- arbitrary[BatchFileUpload]
+      index    <- Gen.choose(0, batch.response.files.length - 1)
+      file      = batch.response.files(index)
+    } yield (file, batch)
 
   def controller(getData: DataRetrievalAction) =
     new UploadYourFilesController(
@@ -53,14 +53,14 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
       new FakeAuthAction(),
       new FakeEORIAction(),
       getData,
-      new FileUploadResponseRequiredActionImpl(),
+      new BatchFileUploadRequiredActionImpl(),
       dataCacheConnector,
       appConfig)
 
   def viewAsString(uploadRequest: UploadRequest, callbackUrl: String, refPosition: Position): String =
     upload_your_files(uploadRequest, callbackUrl, refPosition)(fakeRequest, messages, appConfig).toString
 
-  private def combine(response: FileUploadResponse, cache: CacheMap): CacheMap =
+  private def combine(response: BatchFileUpload, cache: CacheMap): CacheMap =
     cache.copy(data = cache.data + (HowManyFilesUploadPage.Response.toString -> Json.toJson(response)))
 
   private def nextRef(ref: String, refs: List[String]): String = {
@@ -82,16 +82,16 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
       "request file exists in response" in {
 
-        forAll(responseGen, arbitrary[CacheMap]) {
-          case ((file, response), cacheMap) =>
+        forAll(batchGen, arbitrary[CacheMap]) {
+          case ((file, batch), cacheMap) =>
 
             val callback =
               routes.UploadYourFilesController.onSuccess(file.reference).absoluteURL()(fakeRequest)
 
             val refPosition: Position =
-              nextPosition(file.reference, response.files.map(_.reference))
+              nextPosition(file.reference, batch.response.files.map(_.reference))
 
-            val updatedCache = combine(response, cacheMap)
+            val updatedCache = combine(batch, cacheMap)
             val result = controller(getCacheMap(updatedCache)).onPageLoad(file.reference)(fakeRequest)
 
             status(result) mustBe OK
@@ -104,20 +104,20 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
       "file has already been uploaded" in {
 
-        val fileUploadedGen = responseGen.map {
-          case (file, response) =>
+        val fileUploadedGen = batchGen.map {
+          case (file, batch) =>
             val uploadedFile = file.copy(state = Uploaded)
-            val updatedFiles = uploadedFile :: response.files.filterNot(_ == file)
+            val updatedFiles = uploadedFile :: batch.response.files.filterNot(_ == file)
 
-            (uploadedFile, FileUploadResponse(updatedFiles))
+            (uploadedFile, batch.copy(response = FileUploadResponse(updatedFiles)))
         }
 
         forAll(fileUploadedGen, arbitrary[CacheMap]) {
-          case ((file, response), cache) =>
+          case ((file, batch), cache) =>
 
-            val reference    = nextRef(file.reference, response.files.map(_.reference))
+            val reference    = nextRef(file.reference, batch.response.files.map(_.reference))
             val nextPage     = routes.UploadYourFilesController.onPageLoad(reference)
-            val updatedCache = combine(response, cache)
+            val updatedCache = combine(batch, cache)
 
             val result = controller(getCacheMap(updatedCache)).onPageLoad(file.reference)(fakeRequest)
 
@@ -142,11 +142,11 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
       "file reference is not in response" in {
 
-        forAll { (ref: String, response: FileUploadResponse, cache: CacheMap) =>
+        forAll { (ref: String, batch: BatchFileUpload, cache: CacheMap) =>
 
-          whenever(!response.files.exists(_.reference == ref)) {
+          whenever(!batch.response.files.exists(_.reference == ref)) {
 
-            val updatedCache = combine(response, cache)
+            val updatedCache = combine(batch, cache)
             val result = controller(getCacheMap(updatedCache)).onPageLoad(ref)(fakeRequest)
 
             status(result) mustBe SEE_OTHER
@@ -161,10 +161,10 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
     "update file status to Uploaded" in {
 
-      forAll(responseGen, arbitrary[CacheMap]) {
-        case ((file, response), cache) =>
+      forAll(batchGen, arbitrary[CacheMap]) {
+        case ((file, batch), cache) =>
 
-          val updatedCache = combine(response, cache)
+          val updatedCache = combine(batch, cache)
           val result = controller(getCacheMap(updatedCache)).onSuccess(file.reference)(fakeRequest)
 
           whenReady(result) { _ =>
@@ -172,10 +172,11 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
             val captor: ArgumentCaptor[CacheMap] = ArgumentCaptor.forClass(classOf[CacheMap])
             verify(dataCacheConnector, atLeastOnce).save(captor.capture())
 
-            val updateResponse = captor.getValue.getEntry[FileUploadResponse](HowManyFilesUploadPage.Response)
+            val updatedBatch = captor.getValue.getEntry[BatchFileUpload](HowManyFilesUploadPage.Response)
 
-            updateResponse must not be Some(response)
-            updateResponse
+            updatedBatch must not be Some(batch)
+            updatedBatch
+              .map(_.response)
               .flatMap(_.files.find(_.reference == file.reference))
               .map(_.state) mustBe Some(Uploaded)
           }
@@ -184,12 +185,12 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
     "redirect user to the next upload page" in {
 
-      forAll(responseGen, arbitrary[CacheMap]) {
-        case ((file, response), cache: CacheMap) =>
+      forAll(batchGen, arbitrary[CacheMap]) {
+        case ((file, batch), cache: CacheMap) =>
 
-          val updatedCache = combine(response, cache)
+          val updatedCache = combine(batch, cache)
           val result = controller(getCacheMap(updatedCache)).onSuccess(file.reference)(fakeRequest)
-          val next = nextRef(file.reference, response.files.map(_.reference))
+          val next = nextRef(file.reference, batch.response.files.map(_.reference))
 
           status(result) mustBe SEE_OTHER
           redirectLocation(result) mustBe Some(routes.UploadYourFilesController.onPageLoad(next).url)
@@ -211,11 +212,11 @@ class UploadYourFilesControllerSpec extends ControllerSpecBase
 
       "file reference is not in response" in {
 
-        forAll { (ref: String, response: FileUploadResponse, cache: CacheMap) =>
+        forAll { (ref: String, batch: BatchFileUpload, cache: CacheMap) =>
 
-          whenever(!response.files.exists(_.reference == ref)) {
+          whenever(!batch.response.files.exists(_.reference == ref)) {
 
-            val updatedCache = combine(response, cache)
+            val updatedCache = combine(batch, cache)
             val result = controller(getCacheMap(updatedCache)).onSuccess(ref)(fakeRequest)
 
             status(result) mustBe SEE_OTHER

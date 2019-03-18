@@ -14,24 +14,13 @@
  * limitations under the License.
  */
 
-package models
+package utils
 
-import base.SpecBase
-import controllers.test.XmlHelper
-import generators.Generators
-import org.scalatest.prop.PropertyChecks
+object PredefUtils {
 
-class FileUploadResponseSpec extends SpecBase with XmlBehaviours with PropertyChecks with Generators {
+  implicit class OptionOps[A](val opt: Option[A]) extends AnyVal {
 
-  ".fromXml" should {
-
-    "parse all fields" in {
-
-      forAll { response: FileUploadResponse =>
-
-        val xml = XmlHelper.toXml(response)
-        FileUploadResponse.fromXml(xml) mustBe response
-      }
-    }
+    def zip[B](that: Option[B]): Option[(A, B)] =
+      opt.flatMap(a => that.map(b => (a, b)))
   }
 }

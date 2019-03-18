@@ -14,24 +14,11 @@
  * limitations under the License.
  */
 
-package models
+package filters
 
-import base.SpecBase
-import controllers.test.XmlHelper
-import generators.Generators
-import org.scalatest.prop.PropertyChecks
+import com.google.inject.Inject
+import play.api.http.DefaultHttpFilters
+import uk.gov.hmrc.play.bootstrap.filters.FrontendFilters
 
-class FileUploadResponseSpec extends SpecBase with XmlBehaviours with PropertyChecks with Generators {
-
-  ".fromXml" should {
-
-    "parse all fields" in {
-
-      forAll { response: FileUploadResponse =>
-
-        val xml = XmlHelper.toXml(response)
-        FileUploadResponse.fromXml(xml) mustBe response
-      }
-    }
-  }
-}
+class FilterWithWhitelist @Inject()(frontendFilters: FrontendFilters, whitelistFilter: WhitelistFilter)
+  extends DefaultHttpFilters(frontendFilters.filters :+ whitelistFilter: _*)

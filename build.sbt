@@ -6,7 +6,7 @@ import uk.gov.hmrc.versioning.SbtGitVersioning.autoImport.majorVersion
 
 val appName = "cds-file-upload-frontend"
 val jacksonVersion = "2.9.7"
-
+val test = "it,test"
 resolvers += Resolver.bintrayRepo("wolfendale", "maven")
 
 lazy val microservice = Project(appName, file("."))
@@ -15,29 +15,33 @@ lazy val microservice = Project(appName, file("."))
     majorVersion                     := 0,
     libraryDependencies              ++= Seq(
       "uk.gov.hmrc"                      %% "govuk-template"           % "5.25.0-play-25",
-      "uk.gov.hmrc"                      %% "play-ui"                  % "7.25.0-play-25",
-      "uk.gov.hmrc"                      %% "bootstrap-play-25"        % "3.14.0",
+      "uk.gov.hmrc"                      %% "play-ui"                  % "7.33.0-play-25",
+      "uk.gov.hmrc"                      %% "bootstrap-play-25"        % "4.9.0",
       "com.github.pureconfig"            %% "pureconfig"               % "0.9.2",
       "com.fasterxml.jackson.core"       %  "jackson-core"             % jacksonVersion,
       "com.fasterxml.jackson.core"       %  "jackson-databind"         % jacksonVersion,
       "com.fasterxml.jackson.core"       %  "jackson-annotations"      % jacksonVersion,
       "com.fasterxml.jackson.dataformat" %  "jackson-dataformat-xml"   % jacksonVersion,
       "com.fasterxml.jackson.module"     %% "jackson-module-scala"     % jacksonVersion,
-      "uk.gov.hmrc"                      %% "play-reactivemongo"       % "6.2.0",
-      "uk.gov.hmrc"                      %% "http-caching-client"      % "7.2.0",
       "io.megl"                          %% "play-json-extra"          % "2.4.3",
-      //"org.julienrf"                     %% "play-json-derived-codecs" % "4.0.1",
+      "uk.gov.hmrc"                      %% "http-caching-client"      % "8.1.0",
+      "uk.gov.hmrc"                      %% "play-whitelist-filter"    % "2.0.0",
+      "org.reactivemongo"                %% "play2-reactivemongo"      % "0.16.3-play25",
+      "uk.gov.hmrc"                      %% "crypto"                   % "5.3.0",
 
-      "org.scalatest"              %% "scalatest"                 % "3.0.4"  % "test",
-      "org.jsoup"                  %  "jsoup"                     % "1.10.2" % "test",
-      "com.typesafe.play"          %% "play-test"                 % current  % "test",
-      "org.pegdown"                %  "pegdown"                   % "1.6.0"  % "test",
-      "uk.gov.hmrc"                %% "service-integration-test"  % "0.2.0"  % "test",
-      "org.scalatestplus.play"     %% "scalatestplus-play"        % "2.0.0"  % "test",
-      "org.mockito"                %  "mockito-core"              % "2.13.0" % "test",
-      "org.scalacheck"             %% "scalacheck"                % "1.14.0" % "test",
-      "wolfendale"                 %% "scalacheck-gen-regexp"     % "0.1.1"  % "test"
+      "org.scalatest"              %% "scalatest"                 % "3.0.4"  % test,
+      "org.jsoup"                  %  "jsoup"                     % "1.10.2" % test,
+      "com.typesafe.play"          %% "play-test"                 % current  % test,
+      "org.pegdown"                %  "pegdown"                   % "1.6.0"  % test,
+      "uk.gov.hmrc"                %% "service-integration-test"  % "0.2.0"  % test,
+      "org.scalatestplus.play"     %% "scalatestplus-play"        % "2.0.0"  % test,
+      "org.mockito"                %  "mockito-core"              % "2.13.0" % test,
+      "org.scalacheck"             %% "scalacheck"                % "1.14.0" % test,
+      "wolfendale"                 %% "scalacheck-gen-regexp"     % "0.1.1"  % test
+    ),
 
+    dependencyOverrides ++= Set(
+      "org.reactivemongo" %% "reactivemongo" % "0.16.3"
     )
   )
   .settings(publishingSettings: _*)
@@ -48,7 +52,9 @@ lazy val microservice = Project(appName, file("."))
     // concatenate js
     Concat.groups := Seq(
       "javascripts/cdsfileuploadfrontend-app.js" ->
-        group(Seq("javascripts/cdsfileuploadfrontend.js"))
+        group(Seq("javascripts/cdsfileuploadfrontend.js")),
+      "javascripts/analytics.min.js" ->
+        group(Seq("javascripts/analytics.js"))
     ),
     // prevent removal of unused code which generates warning errors due to use of third-party libs
     uglifyCompressOptions := Seq("unused=false", "dead_code=false"),

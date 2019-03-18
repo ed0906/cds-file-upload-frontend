@@ -14,24 +14,11 @@
  * limitations under the License.
  */
 
-package models
+package repositories
 
-import base.SpecBase
-import controllers.test.XmlHelper
-import generators.Generators
-import org.scalatest.prop.PropertyChecks
+import scala.concurrent.Future
 
-class FileUploadResponseSpec extends SpecBase with XmlBehaviours with PropertyChecks with Generators {
+trait Repository {
 
-  ".fromXml" should {
-
-    "parse all fields" in {
-
-      forAll { response: FileUploadResponse =>
-
-        val xml = XmlHelper.toXml(response)
-        FileUploadResponse.fromXml(xml) mustBe response
-      }
-    }
-  }
+  def started: Future[Boolean]
 }
